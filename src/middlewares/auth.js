@@ -39,7 +39,7 @@ const authrization = async function (req, res, next) {
         if (!isValidObjectId(blogId)) {
             return res.status(400).send({ status: false, msg: "blogId is not valid that is not in proper format" })
         }
-        const validBlog = await blogModel.findById(blogId)
+        const validBlog = await blogModel.findById({_id:blogId,isDeleted:false})
         if (!validBlog)
             return res.status(404).send({ status: false, msg: "blog with thid blogid not found " })
         
@@ -47,7 +47,7 @@ const authrization = async function (req, res, next) {
         let ownerOfBlog = validBlog.authorId;
         
         //userId for the logged-in user
-        let authorId = req["x-api-key"].id
+        let authorId = req["x-api-key"].authorid
        
         //userId comparision to check if the logged-in user is requesting for their own data
         if (ownerOfBlog != authorId)
@@ -68,7 +68,7 @@ const authorizationdeleteblog = async function (req, res,next) {
        if (Object.keys(check).length == 0) {
             res.status(400).send({ status: false, msg: "no data recieved in request" })
         }
-        const authorId = req["x-api-key"].id
+        const authorId = req["x-api-key"].authorid
         let flag = 0
         const data = await blogModel.find(check)
       for (let i = 0; i < data.length; i++) {

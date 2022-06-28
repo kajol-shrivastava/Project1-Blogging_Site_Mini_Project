@@ -1,4 +1,3 @@
-const jwt = require("jsonwebtoken")
 const authorModel = require('../models/authorModel')
 const blogModel = require('../models/blogModel')
 const mongoose = require("mongoose")
@@ -7,6 +6,18 @@ const isValidObjectId = function (objectId) {
 }
 const verifyPassword = require("../controllers/authorController")
 const checkSpaces = require("../controllers/authorController")
+
+const isValid=function(value){
+    if (typeof value==='undefined' || value=== null)return false
+    if(typeof value==='string'&&value.trim().length===0)return false
+    return true;
+}
+
+const isValidRequestBody=function(requestBody){
+    return Object.keys(requestBody).length>0
+}
+
+
 const checkarray = function (arr) {
     let msg = 0
     let flag = 0
@@ -34,55 +45,41 @@ const createBlog = async function (req, res) {
     try {
         //<<----------Validation--------->>  
         const data = req.body
-        if (Object.keys(data).length == 0)
-            return res.status(400).send({ status: false, msg: "please send the data" })
+        if (!isValidRequestBody(data))
+            return res.status(400).send({ status: false, msg: "Invalid request paramter , Please provide blog details" })
 
 
-        const { title, body, authorId, tags, category, subcategory } = data
-        if (!title) {
+        //Extracting parms
+        const { title, body, authorId, tags, category, subcategory ,isPublished} = data
+        if (!isValid(title)) {
             return res.status(400).send({ status: false, msg: "Title not recieved it is required" })
         }
 
-        let message = checkSpaces.checkSpaces(title)
-        if (message != true) {
-            return res.status(400).send({ status: false, message: "title  " + message })
-        }
+      
+      
 
-        if (!body) {
+        if (!isValid(body)) {
             return res.status(400).send({ status: false, msg: "body not recieved it is required" })
         }
 
-        message = checkSpaces.checkSpaces(body)
-        if (message != true) {
-            return res.status(400).send({ status: false, message: "body  " + message })
-        }
+       
 
-        if (!authorId) {
+        if (!isValid(authorId)) {
             return res.status(400).send({ status: false, msg: "authorId not recieved it is required" })
         }
 
-        message = checkSpaces.checkSpaces(authorId)
-        if (message != true) {
-            return res.status(400).send({ status: false, message: "authorId  " + message })
-        }
-
-        if (!isValidObjectId(authorId)) {
+         if (!isValidObjectId(authorId)) {
             return res.status(400).send({ status: false, msg: "AuthorId is not valid" })
         }
         const validId = await authorModel.findById(data.authorId)
         if (!validId)
-            return res.status(404).send({ status: false, msg: "No Author with this exist" })
+            return res.status(404).send({ status: false, msg: "No Author with this id exist" })
 
-        if (!category) {
+        if (!isValid(category)) {
             return res.status(400).send({ status: false, msg: "category not recieved it is required" })
         }
 
-        message = checkSpaces.checkSpaces(category)
-        if (message != true) {
-            return res.status(400).send({ status: false, message: "category  " + message })
-        }
-
-        if (tags) {
+         if (tags) {
 
             if (typeof (tags) == 'string') {
                 message = checkSpaces.checkSpaces(tags)
@@ -116,9 +113,15 @@ const createBlog = async function (req, res) {
                 }
             }
         }
+
+        const author={title, body, authorId, tags, category, subcategory}
+        if(isPublished=='true'){
+            author.isPublished=isPublished
+            author.publishedAt=Date.now('YYYY/MM/DD:mm:ss')
+        }
         
          //<<-------creating Blog--------->>
-        const savedData = await blogModel.create(data)
+        const savedData = await blogModel.create(author)
         res.status(201).send({ status: true, data: savedData })
     }
     catch (err) {
@@ -136,7 +139,7 @@ const getBlog = async function (req, res) {
         filter.isPublished = true
         const { authorId, category, tags, subcategory } = check
 
-        if (authorId) {
+        if (isValid(authorId)) {
             if (!isValidObjectId(authorId)) {
                 return res.status(400).send({ status: false, msg: "not valid authorId" })
             }
@@ -145,13 +148,13 @@ const getBlog = async function (req, res) {
             else
                 res.status(404).send({ status: false, msg: "author of this id not found" })
         }
-        if (category) {
-            filter.category = category
+        if (isValid(category)) {
+            filter.category = category.trim()
         }
-        if (tags) {
+        if (isValid(tags)) {
             filter.tags = tags
         }
-        if (subcategory) {
+        if (isValid(subcategory)) {
             filter.subcategory = subcategory
         }
 
@@ -169,46 +172,46 @@ const getBlog = async function (req, res) {
 }
 
 
-//---------------------------------------------AUTHORLOGIN---------------------------------------------------------------
+// //---------------------------------------------Update Blog---------------------------------------------------------------
 
-const authorLogin = async function (req, res) {
-    try {
-        //<<----------Validation--------->>  
-        const check = req.body
-        if (Object.keys(check).length == 0) {
-            return res.status(400).send({ status: false, msg: "no credentials recieved in request" })
-        }
-        const email = req.body.email
-        if (!email) {
-            return res.status(401).send({ status: false, msg: "no email recieved in request" })
-        }
-        if (!(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))) {
-            return res.status(401).send({ status: false, message: "Email should be a valid email address" })
-        }
+// const authorLogin = async function (req, res) {
+//     try {
+//         //<<----------Validation--------->>  
+//         const check = req.body
+//         if (Object.keys(check).length == 0) {
+//             return res.status(400).send({ status: false, msg: "no credentials recieved in request" })
+//         }
+//         const email = req.body.email
+//         if (!email) {
+//             return res.status(401).send({ status: false, msg: "no email recieved in request" })
+//         }
+//         if (!(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))) {
+//             return res.status(401).send({ status: false, message: "Email should be a valid email address" })
+//         }
 
-        const password = req.body.password
-        let message = checkSpaces.checkSpaces(password)
-        if (message != true) {
-            return res.status(400).send({ status: false, message: "password  " + message })
-        }
-        const result = verifyPassword.verifyPassword(password)
-        if (result != true) {
-            return res.status(401).send({ status: false, msg: result })
-        }
-        const getData = await authorModel.findOne({ email: email, password: password })
-        if (!getData) {
-            return res.status(401).send({ status: false, msg: "Incorrect email or password" })
-        }
+//         const password = req.body.password
+//         let message = checkSpaces.checkSpaces(password)
+//         if (message != true) {
+//             return res.status(400).send({ status: false, message: "password  " + message })
+//         }
+//         const result = verifyPassword.verifyPassword(password)
+//         if (result != true) {
+//             return res.status(401).send({ status: false, msg: result })
+//         }
+//         const getData = await authorModel.findOne({ email: email, password: password })
+//         if (!getData) {
+//             return res.status(401).send({ status: false, msg: "Incorrect email or password" })
+//         }
 
-         //<<-------generating token --------->>
-        const token = jwt.sign({ id: getData._id }, "##k&&k@@s")
-        res.status(200).send({ status: true, data: token })
+//          //<<-------generating token --------->>
+//         const token = jwt.sign({ id: getData._id }, "##k&&k@@s")
+//         res.status(200).send({ status: true, data: token })
 
-    }
-    catch (err) {
-        res.status(500).send({ status: false, error: err.message })
-    }
-}
+//     }
+//     catch (err) {
+//         res.status(500).send({ status: false, error: err.message })
+//     }
+// }
 
 //--------------------------------------------UPDATE BLOG-----------------------------------------------------------
 const updateBlog = async function (req, res) {
@@ -216,27 +219,24 @@ const updateBlog = async function (req, res) {
        //<<----------Validation--------->>  
         const blogId = req.params.blogId
         
-        const check = req.body
-        if (Object.keys(check).length == 0) {
+        const data = req.body
+        if (!isValidRequestBody(data)) {
             return res.status(400).send({ status: false, msg: "no data recieved to update" })
         }
 
-        let { title, body, tags, subcategory } = check
+        //Extracting Params
+        let { title, body, tags, subcategory,isPublished } = data
         const update = {}
 
-        if (title) {
-            let message = checkSpaces.checkSpaces(title)
-            if (message != true) {
-                return res.status(400).send({ status: false, message: "title  " + message })
-            }
+        const blogToBeUpdated=await blogModel.findById(blogId)
+
+        if (isValid(title)) {
+           
             update.title = title
         }
 
-        if (body) {
-            let message = checkSpaces.checkSpaces(body)
-            if (message != true) {
-                return res.status(400).send({ status: false, message: "body  " + message })
-            }
+        if (isValid(body)) {
+            
             update.body = body
         }
 
@@ -256,12 +256,14 @@ const updateBlog = async function (req, res) {
             }
         }
 
+        if(blogToBeUpdated.isPublished!==true){
         update.isPublished = 'true'
         const time = Date.now('YYYY/MM/DD:mm:ss')
         update.publishedAt = time
+    }
 
          //<<-------Updating Blog--------->>
-        const updateData = await blogModel.findOneAndUpdate({ _id: blogId }, { $push: { subcategory: subcategory, tags: tags }, $set: update }, { new: true })
+        const updateData = await blogModel.findOneAndUpdate({ _id: blogId,isDeleted:false }, { $push: { subcategory: subcategory, tags: tags }, $set: update }, { new: true })
         
         if (!updateData) {
             return res.status(404).send({ status: false, msg: " Record not updated " })
@@ -310,12 +312,15 @@ const deleteBlog = async function (req, res) {
         if (Object.keys(check).length == 0) {
             res.status(400).send({ status: false, msg: "no data recieved in request" })
         }
+        //extracting params
         const { category, authorId, tags, subcategory, isPublished } = check
         const filter = {}
         filter.authorId = req.authorId
         filter.isDeleted = false
-        if (category) { filter.category = category }
-        if (authorId) {
+        if (isValid(category)) { 
+            filter.category = category }
+        
+            if (isValid(authorId)) {
             if (!isValidObjectId(authorId)) {
                 return res.status(400).send({ status: false, msg: "not valid authorId" })
             }
@@ -324,10 +329,10 @@ const deleteBlog = async function (req, res) {
             else
                 res.status(404).send({ status: false, msg: "author of this id not found" })
         }
-        if (tags) {
+        if (isValid(tags)) {
             filter.tags = tags
         }
-        if (subcategory) {
+        if (isValid(subcategory)) {
             filter.subcategory = subcategory
         }
         if (isPublished) {
@@ -359,4 +364,3 @@ module.exports.deleteById = deleteById
 module.exports.deleteBlog = deleteBlog
 module.exports.getBlog = getBlog
 module.exports.updateBlog = updateBlog
-module.exports.authorLogin = authorLogin

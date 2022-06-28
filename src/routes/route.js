@@ -23,5 +23,5 @@ router.delete('/blogs/:blogId',mw.authentication,mw.authrization,blogController.
 router.delete('/blogs',mw.authentication,mw.authorizationdeleteblog,blogController.deleteBlog)
 
 //---------------------------------------------AUTHOR LOGIN API------------------------------------------------------
-router.post('/login',blogController.authorLogin)
+router.post('/login',authorController.authorLogin)
 module.exports = router;
