@@ -6,7 +6,7 @@ const isValidObjectId = function (objectId) {
     return mongoose.Types.ObjectId.isValid(objectId)
 }
 
-//<<------------------------------------------------AUTHENTICATION------------------------------------------------------------>>
+//<<-------------------------------------------------AUTHENTICATION------------------------------------------------------------>>
 const authentication = function (req, res, next) {
     try {
         const token = req.headers["X-Auth-Token"] || req.headers["x-auth-token"]
