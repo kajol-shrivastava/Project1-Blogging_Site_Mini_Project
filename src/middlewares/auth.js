@@ -15,10 +15,10 @@ const authentication = function (req, res, next) {
         }
         const decodedtoken = jwt.verify(token, "##k&&k@@s")
         
-        if (!decodedtoken) {
+        // if (!decodedtoken) {
 
-            return res.status(401).send({ status: false, msg: "Token invalid" })
-        }
+        //     return res.status(401).send({ status: false, msg: "Token invalid" })
+        // }
      
 
         req["x-api-key"] = decodedtoken
@@ -70,7 +70,11 @@ const authorizationdeleteblog = async function (req, res,next) {
         }
         const authorId = req["x-api-key"].authorid
         let flag = 0
+        check.isDeleted=false
         const data = await blogModel.find(check)
+        if(data.length==0){
+            return res.status(404).send({status:false,message:"No such documents exists"})
+        }
       for (let i = 0; i < data.length; i++) {
              if (authorId == data[i].authorId) {
                 flag = 1

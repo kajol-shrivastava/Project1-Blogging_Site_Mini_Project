@@ -1,44 +1,13 @@
 const authorModel = require('../models/authorModel')
 const blogModel = require('../models/blogModel')
-const mongoose = require("mongoose")
-const isValidObjectId = function (objectId) {
-    return mongoose.Types.ObjectId.isValid(objectId)
-}
-const verifyPassword = require("../controllers/authorController")
-const checkSpaces = require("../controllers/authorController")
 
-const isValid=function(value){
-    if (typeof value==='undefined' || value=== null)return false
-    if(typeof value==='string'&&value.trim().length===0)return false
-    return true;
-}
-
-const isValidRequestBody=function(requestBody){
-    return Object.keys(requestBody).length>0
-}
-
-
-const checkarray = function (arr) {
-    let msg = 0
-    let flag = 0
-    if (arr.length == 0) {
-        let msg1 = " array must contain must contain some value"
-        return msg1
-    }
-
-    arr.forEach(element => {
-        if (element.trim().length == 0)
-            flag = 1
-    });
-
-    if (flag == 1) {
-        msg = "array element must contain characters other than spaces"
-        return msg
-    }
-
-    return true
-
-}
+const {isValid,
+isValidRequestBody,
+checkSpaces,
+checkarray,
+verifyPassword,
+extraspace,
+isValidObjectId } =require("../validator/validator")
 
 //--------------------------------------------CREATEBLOG-------------------------------------------------------------
 const createBlog = async function (req, res) {
@@ -50,20 +19,22 @@ const createBlog = async function (req, res) {
 
 
         //Extracting parms
-        const { title, body, authorId, tags, category, subcategory ,isPublished} = data
+        let { title, body, authorId, tags, category, subcategory ,isPublished} = data
+
+        //validating title
         if (!isValid(title)) {
             return res.status(400).send({ status: false, msg: "Title not recieved it is required" })
         }
 
-      
-      
-
-        if (!isValid(body)) {
+      //validating body
+      if (!isValid(body)) {
             return res.status(400).send({ status: false, msg: "body not recieved it is required" })
         }
 
-       
+        body=extraspace(body)//removing extra spaces if there is any
 
+       
+        //validation authorId
         if (!isValid(authorId)) {
             return res.status(400).send({ status: false, msg: "authorId not recieved it is required" })
         }
@@ -75,14 +46,16 @@ const createBlog = async function (req, res) {
         if (!validId)
             return res.status(404).send({ status: false, msg: "No Author with this id exist" })
 
+        //validating category
         if (!isValid(category)) {
             return res.status(400).send({ status: false, msg: "category not recieved it is required" })
         }
 
-         if (tags) {
+        //validating tags
+        if (tags) {
 
             if (typeof (tags) == 'string') {
-                message = checkSpaces.checkSpaces(tags)
+                message = checkSpaces(tags)
 
                 if (message != true) {
                     return res.status(400).send({ status: false, message: "tags " + message })
@@ -98,9 +71,11 @@ const createBlog = async function (req, res) {
             }
         }
 
+        //validating subcategory
+
         if (subcategory) {
             if (typeof (subcategory) == 'string') {
-                message = checkSpaces.checkSpaces(subcategory)
+                message = checkSpaces(subcategory)
                 if (message != true) {
                     return res.status(400).send({ status: false, message: "subcategory " + message })
                 }
@@ -115,7 +90,9 @@ const createBlog = async function (req, res) {
         }
 
         const author={title, body, authorId, tags, category, subcategory}
-        if(isPublished=='true'){
+
+        //checking for isPublished status
+        if(isPublished=='true'||isPublished==true){
             author.isPublished=isPublished
             author.publishedAt=Date.now('YYYY/MM/DD:mm:ss')
         }
@@ -137,8 +114,11 @@ const getBlog = async function (req, res) {
         const filter = {}
         filter.isDeleted = false
         filter.isPublished = true
+
+        //extracting params
         const { authorId, category, tags, subcategory } = check
 
+        //validating authorId
         if (isValid(authorId)) {
             if (!isValidObjectId(authorId)) {
                 return res.status(400).send({ status: false, msg: "not valid authorId" })
@@ -148,12 +128,18 @@ const getBlog = async function (req, res) {
             else
                 res.status(404).send({ status: false, msg: "author of this id not found" })
         }
+
+        //validating category
         if (isValid(category)) {
             filter.category = category.trim()
         }
+
+        //validating tags
         if (isValid(tags)) {
             filter.tags = tags
         }
+
+        //validating subcategory
         if (isValid(subcategory)) {
             filter.subcategory = subcategory
         }
@@ -172,46 +158,6 @@ const getBlog = async function (req, res) {
 }
 
 
-// //---------------------------------------------Update Blog---------------------------------------------------------------
-
-// const authorLogin = async function (req, res) {
-//     try {
-//         //<<----------Validation--------->>  
-//         const check = req.body
-//         if (Object.keys(check).length == 0) {
-//             return res.status(400).send({ status: false, msg: "no credentials recieved in request" })
-//         }
-//         const email = req.body.email
-//         if (!email) {
-//             return res.status(401).send({ status: false, msg: "no email recieved in request" })
-//         }
-//         if (!(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))) {
-//             return res.status(401).send({ status: false, message: "Email should be a valid email address" })
-//         }
-
-//         const password = req.body.password
-//         let message = checkSpaces.checkSpaces(password)
-//         if (message != true) {
-//             return res.status(400).send({ status: false, message: "password  " + message })
-//         }
-//         const result = verifyPassword.verifyPassword(password)
-//         if (result != true) {
-//             return res.status(401).send({ status: false, msg: result })
-//         }
-//         const getData = await authorModel.findOne({ email: email, password: password })
-//         if (!getData) {
-//             return res.status(401).send({ status: false, msg: "Incorrect email or password" })
-//         }
-
-//          //<<-------generating token --------->>
-//         const token = jwt.sign({ id: getData._id }, "##k&&k@@s")
-//         res.status(200).send({ status: true, data: token })
-
-//     }
-//     catch (err) {
-//         res.status(500).send({ status: false, error: err.message })
-//     }
-// }
 
 //--------------------------------------------UPDATE BLOG-----------------------------------------------------------
 const updateBlog = async function (req, res) {
@@ -230,37 +176,44 @@ const updateBlog = async function (req, res) {
 
         const blogToBeUpdated=await blogModel.findById(blogId)
 
+        //validating title
         if (isValid(title)) {
            
             update.title = title
         }
 
+        //validating body
         if (isValid(body)) {
-            
+            body=extraspace(body)
             update.body = body
         }
 
 
+        //validating tags
         if (tags) {
-            let message = checkSpaces.checkSpaces(tags)
+            let message = checkSpaces(tags)
             if (message != true) {
                 return res.status(400).send({ status: false, message: "tags  " + message })
             }
         }
 
 
+        //validating subcategory
         if (subcategory) {
-            let message = checkSpaces.checkSpaces(subcategory)
+            let message = checkSpaces(subcategory)
             if (message != true) {
                 return res.status(400).send({ status: false, message: "subcategory  " + message })
             }
         }
+
+        
 
         if(blogToBeUpdated.isPublished!==true){
         update.isPublished = 'true'
         const time = Date.now('YYYY/MM/DD:mm:ss')
         update.publishedAt = time
     }
+
 
          //<<-------Updating Blog--------->>
         const updateData = await blogModel.findOneAndUpdate({ _id: blogId,isDeleted:false }, { $push: { subcategory: subcategory, tags: tags }, $set: update }, { new: true })
@@ -284,10 +237,11 @@ const deleteById = async function (req, res) {
 
         const validId = await blogModel.findById(blogId)
 
-        if (validId.isDeleted === 'true')
+        //checking if the blog is already deleted 
+        if (validId.isDeleted === true)
             return res.status(404).send({ status: false, msg: "already deleted" })
 
-        
+        //setting isDeleted and deletedAt
         const time = Date.now('YYYY/MM/DD:mm:ss')
         const update = { isDeleted: true, deletedAt: time }
 
@@ -317,6 +271,9 @@ const deleteBlog = async function (req, res) {
         const filter = {}
         filter.authorId = req.authorId
         filter.isDeleted = false
+
+        //validating filters
+
         if (isValid(category)) { 
             filter.category = category }
         

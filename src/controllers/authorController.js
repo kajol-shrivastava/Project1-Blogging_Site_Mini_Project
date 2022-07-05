@@ -1,61 +1,13 @@
 const jwt = require("jsonwebtoken")
 const authorModel = require('../models/authorModel')
+const {validName,
+verifyPassword,
+checkSpaces,
+isValid,
+isValidRequestBody,
+isValidTitle}=require("../validator/validator")
 
-const validName = function (name) {
-    const ret = !(/^[a-zA-Z ]{2,30}$/.test(name))
-    return ret
-}
 
-const verifyPassword = function (password) {
-  
-    //check empty password field  
-    let msg
-    if (password == "") {
-        
-        msg = "Fill the password please!"
-        return msg;
-    }
-
-    //minimum password length validation  
-    if (password.length < 5) {
-        
-        msg = "Password length must be atleast 5 characters"
-        return msg;
-    }
-
-    //maximum length of password validation  
-    if (password.length > 15) {
-        
-        msg = "Password length must not exceed 15 characters"
-        return msg;
-    } else {
-        return true;
-    }
-}
-
-const checkSpaces=function(temp){
-    let check=temp.trim()
-     let len =check.length
-     if(len==0){
-         let msg="must contain characters other than spaces"
-         return msg
-     }
-     return true
-}
-
-const isValid=function(value){
-    if (typeof value==='undefined' || value=== null)return false
-    if(typeof value==='string'&&value.trim().length===0)return false
-    return true;
-}
-
-const isValidTitle=function(title){
-    return ['Mr','Miss','Mrs','Mast'].indexOf(title)!=-1
-}
-
-const isValidRequestBody=function(requestBody){
-    return Object.keys(requestBody).length>0
-}
 //<<-------------------------------------------CREATE AUTHOR---------------------------------------------------->>
 const createAuthor = async function (req, res) {
     try {
@@ -100,7 +52,7 @@ const createAuthor = async function (req, res) {
          
 
         if (!isValidTitle(title)) {
-            return res.status(400).send({ status: false, message: "Title  should be among Mr ,Mrs, Miss and Mast" })
+            return res.status(400).send({ status: false, message: "Title  should be among Mr ,Mrs, Miss " })
         }
 
         
@@ -129,7 +81,7 @@ const createAuthor = async function (req, res) {
             return res.status(400).send({ status: false, message: result })
         }
 
-        const isEmailAlreadyUsed=await authorModel.findOne({email})
+        const isEmailAlreadyUsed=await authorModel.findOne({email:email,isDeleted:false})
         if(isEmailAlreadyUsed){
             return res.status(400).send({ status: false, message: `${email} Email address already registered`})
         }
@@ -174,7 +126,7 @@ const authorLogin = async function (req, res) {
         if (result != true) {
             return res.status(400).send({ status: false, msg: result })
         }
-        const author = await authorModel.findOne({ email: email, password: password })
+        const author = await authorModel.findOne({ email: email, password: password ,isDeleted:false})
         if (!author) {
             return res.status(401).send({ status: false, msg: "Invalid Login Credentials" })
         }
@@ -195,6 +147,4 @@ const authorLogin = async function (req, res) {
 
 
 module.exports.createAuthor = createAuthor
-module.exports.verifyPassword=verifyPassword
-module.exports.checkSpaces=checkSpaces
 module.exports.authorLogin = authorLogin
